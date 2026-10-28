@@ -16,6 +16,7 @@ A responsive weather dashboard built with plain HTML, CSS, and JavaScript ES mod
 - Search cancellation with `AbortController`
 - Skeleton loading cards and accessible status messages
 - Responsive glassmorphism layout
+- Original weather-sky SVG background artwork included locally
 
 ## APIs Used
 
@@ -30,6 +31,10 @@ No API key is required.
 - **Mobile dashboard:** `screenshots/mobile.png`
 
 Screenshots can be added to a future `screenshots/` directory.
+
+## Artwork
+
+The local `assets/weather-sky.svg` illustration is original artwork created for this project. It contains no external copyrighted assets and can be used freely by this project.
 
 ## Running the App
 

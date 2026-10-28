@@ -23,8 +23,10 @@ function readStorage(key, fallback) {
   }
 }
 
-let favourites = readStorage('weather-favourites', []);
-let activeCity = 'London';
+let favourites = readStorage('weather-favourites', [{
+  name: 'BIDDA', country: 'Nigeria', latitude: 9.08044, longitude: 6.0099
+}]);
+let activeCity = 'BIDDA';
 let activeController = null;
 let latestWeather = null;
 let unit = localStorage.getItem('weather-unit') === 'F' ? 'F' : 'C';
@@ -109,6 +111,9 @@ function toggleFavourite() {
 }
 
 async function loadCity(city) {
+  if (city.name?.toLowerCase() === 'bida') {
+    city = { ...city, name: 'BIDDA', region: city.region || 'Niger State', country: city.country || 'Nigeria' };
+  }
   activeController?.abort();
   activeController = new AbortController();
   const signal = activeController.signal;
@@ -197,7 +202,7 @@ function useMyLocation() {
         3: 'Getting your location timed out. Try again or search for a city.'
       };
       setStatus(status, `${messages[error.code] || 'Could not get your location.'} Showing London as a default.`, 'error');
-      loadCity({ name: 'London', country: 'United Kingdom', region: 'England', latitude: 51.5074, longitude: -0.1278, timezone: 'Europe/London' });
+      loadCity({ name: 'BIDDA', country: 'Nigeria', region: 'Niger State', latitude: 9.08044, longitude: 6.0099, timezone: 'Africa/Lagos' });
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
   );
@@ -227,8 +232,8 @@ unitF.addEventListener('click', () => { unit = 'F'; localStorage.setItem('weathe
 updateUnitButtons();
 renderFavourites(favouriteList, favouriteCount, favourites, activeCity, loadCity);
 const lastViewed = readStorage('weather-last-viewed', null);
-if (lastViewed?.latitude != null && lastViewed?.longitude != null) {
+if (lastViewed?.latitude != null && lastViewed?.longitude != null && lastViewed.name !== 'My location') {
   loadCity(lastViewed);
 } else {
-  useMyLocation();
+  loadCity({ name: 'BIDDA', country: 'Nigeria', region: 'Niger State', latitude: 9.08044, longitude: 6.0099, timezone: 'Africa/Lagos' });
 }
