@@ -1,6 +1,6 @@
-import { searchCity, getForecast } from './api.js';
+﻿import { searchCity, getForecast } from './api.js';
 import { getWeatherCode } from './weatherCodes.js';
-import { renderCurrentWeather, renderForecast, renderFavourites, setStatus } from './ui.js';
+import { renderCurrentWeather, renderForecast, renderFavourites, renderLoading, renderReady, setStatus } from './ui.js';
 
 const form = document.querySelector('#search-form');
 const input = document.querySelector('#city-input');
@@ -12,12 +12,26 @@ const favouriteCount = document.querySelector('#favourite-count');
 const status = document.querySelector('#status');
 const unitC = document.querySelector('#unit-c');
 const unitF = document.querySelector('#unit-f');
+const locationButton = document.querySelector('#use-location');
 
-const favourites = ['London', 'New York', 'Tokyo', 'Paris', 'Niger', 'Lagos', 'Kwara', 'Rivers'];
+function readStorage(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+let favourites = readStorage('weather-favourites', []);
 let activeCity = 'London';
 let activeController = null;
 let latestWeather = null;
 let unit = localStorage.getItem('weather-unit') === 'F' ? 'F' : 'C';
+
+function saveFavourites() {
+  localStorage.setItem('weather-favourites', JSON.stringify(favourites));
+}
 
 function celsiusToUnit(value) {
   return unit === 'F' ? Math.round((value * 9) / 5 + 32) : Math.round(value);
@@ -35,7 +49,7 @@ function renderLatestWeather() {
   if (!latestWeather) return;
   const { city, data } = latestWeather;
   const currentCode = getWeatherCode(data.current.weather_code);
-  const timezone = data.timezone || city.timezone;
+  const timezone = data.timezone || city.timezone || 'auto';
   let localTime = '';
   try {
     localTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: timezone });
@@ -43,6 +57,7 @@ function renderLatestWeather() {
     localTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  const favourite = favourites.find(item => item.name.toLowerCase() === city.name.toLowerCase());
   renderCurrentWeather(currentWeather, {
     city: city.name,
     country: [city.region, city.country].filter(Boolean).join(', '),
@@ -52,7 +67,9 @@ function renderLatestWeather() {
     icon: currentCode.emoji,
     wind: Math.round(data.current.wind_speed_10m),
     humidity: data.current.relative_humidity_2m,
-    localTime
+    localTime,
+    isFavourite: Boolean(favourite),
+    onFavouriteToggle: toggleFavourite
   });
 
   const forecastDays = data.daily.time.map((date, index) => {
@@ -68,29 +85,57 @@ function renderLatestWeather() {
     };
   });
   renderForecast(forecast, forecastDays, unit);
+  renderReady(currentWeather);
+}
+
+function toggleFavourite() {
+  if (!latestWeather) return;
+  const { city } = latestWeather;
+  const index = favourites.findIndex(item => item.name.toLowerCase() === city.name.toLowerCase());
+  if (index >= 0) {
+    favourites.splice(index, 1);
+  } else {
+    favourites.push({
+      name: city.name,
+      country: city.country || 'Unknown country',
+      latitude: city.latitude,
+      longitude: city.longitude
+    });
+  }
+  saveFavourites();
+  renderLatestWeather();
+  renderFavourites(favouriteList, favouriteCount, favourites, activeCity, loadCity);
+  setStatus(status, index >= 0 ? `${city.name} removed from favourites.` : `${city.name} added to favourites.`);
 }
 
 async function loadCity(city) {
   activeController?.abort();
   activeController = new AbortController();
   const signal = activeController.signal;
-  setStatus(status, 'Loading…');
-  currentWeather.setAttribute('aria-busy', 'true');
+  setStatus(status);
+  renderLoading(currentWeather, forecast);
   cityMatches.hidden = true;
 
   try {
     const data = await getForecast(city.latitude, city.longitude, signal);
     activeCity = city.name;
     latestWeather = { city, data };
+    const storedCity = {
+      name: city.name,
+      country: city.country || 'Unknown country',
+      region: city.region || '',
+      latitude: city.latitude,
+      longitude: city.longitude,
+      timezone: city.timezone || data.timezone
+    };
+    localStorage.setItem('weather-last-viewed', JSON.stringify(storedCity));
     renderLatestWeather();
-    renderFavourites(favouriteList, favouriteCount, favourites, activeCity, searchAndLoadCity);
-    setStatus(status);
-    input.value = '';
+    renderFavourites(favouriteList, favouriteCount, favourites, activeCity, loadCity);
   } catch (error) {
     if (error?.name === 'AbortError') return;
+    renderReady(currentWeather);
+    forecast.replaceChildren();
     setStatus(status, error instanceof Error ? error.message : 'Unable to load weather. Please try again.', 'error');
-  } finally {
-    if (!activeController.signal.aborted) currentWeather.removeAttribute('aria-busy');
   }
 }
 
@@ -98,19 +143,16 @@ async function searchAndLoadCity(cityName) {
   activeController?.abort();
   activeController = new AbortController();
   const signal = activeController.signal;
-  setStatus(status, 'Loading…');
+  setStatus(status);
+  renderLoading(currentWeather, forecast);
   cityMatches.hidden = true;
-  currentWeather.setAttribute('aria-busy', 'true');
 
   try {
     const cities = await searchCity(cityName, signal);
     if (cities.length === 0) {
+      renderReady(currentWeather);
+      forecast.replaceChildren();
       setStatus(status, `We couldn't find “${cityName}”. Try another city name.`, 'error');
-      return;
-    }
-
-    if (cities.length > 1 && !latestWeather && cityName.toLowerCase() === activeCity.toLowerCase()) {
-      await loadCity(cities[0]);
       return;
     }
 
@@ -124,17 +166,41 @@ async function searchAndLoadCity(cityName) {
       });
       cityMatches.hidden = false;
       cityMatches.dataset.matches = JSON.stringify(cities);
+      renderReady(currentWeather);
       setStatus(status, 'Choose the location you meant:');
       return;
     }
-
     await loadCity(cities[0]);
   } catch (error) {
     if (error?.name === 'AbortError') return;
+    renderReady(currentWeather);
+    forecast.replaceChildren();
     setStatus(status, error instanceof Error ? error.message : 'Unable to load weather. Please try again.', 'error');
-  } finally {
-    if (!cityMatches.hidden || !activeController.signal.aborted) currentWeather.removeAttribute('aria-busy');
   }
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) {
+    setStatus(status, 'Geolocation is not supported by this browser.', 'error');
+    return;
+  }
+  setStatus(status, 'Getting your location…');
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      const { latitude, longitude } = position.coords;
+      loadCity({ name: 'My location', country: 'Current coordinates', region: '', latitude, longitude, timezone: 'auto' });
+    },
+    error => {
+      const messages = {
+        1: 'Location permission was denied. Allow location access or search for a city.',
+        2: 'Your location is currently unavailable. Try again or search for a city.',
+        3: 'Getting your location timed out. Try again or search for a city.'
+      };
+      setStatus(status, `${messages[error.code] || 'Could not get your location.'} Showing London as a default.`, 'error');
+      loadCity({ name: 'London', country: 'United Kingdom', region: 'England', latitude: 51.5074, longitude: -0.1278, timezone: 'Europe/London' });
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+  );
 }
 
 cityMatches.addEventListener('change', () => {
@@ -143,7 +209,7 @@ cityMatches.addEventListener('change', () => {
   if (selected) loadCity(selected);
 });
 
-form.addEventListener('submit', (event) => {
+form.addEventListener('submit', event => {
   event.preventDefault();
   const cityName = input.value.trim();
   if (!cityName) {
@@ -154,18 +220,15 @@ form.addEventListener('submit', (event) => {
   searchAndLoadCity(cityName);
 });
 
-unitC.addEventListener('click', () => {
-  unit = 'C';
-  localStorage.setItem('weather-unit', unit);
-  updateUnitButtons();
-  renderLatestWeather();
-});
-unitF.addEventListener('click', () => {
-  unit = 'F';
-  localStorage.setItem('weather-unit', unit);
-  updateUnitButtons();
-  renderLatestWeather();
-});
+locationButton.addEventListener('click', useMyLocation);
+unitC.addEventListener('click', () => { unit = 'C'; localStorage.setItem('weather-unit', unit); updateUnitButtons(); renderLatestWeather(); });
+unitF.addEventListener('click', () => { unit = 'F'; localStorage.setItem('weather-unit', unit); updateUnitButtons(); renderLatestWeather(); });
 
 updateUnitButtons();
-searchAndLoadCity(activeCity);
+renderFavourites(favouriteList, favouriteCount, favourites, activeCity, loadCity);
+const lastViewed = readStorage('weather-last-viewed', null);
+if (lastViewed?.latitude != null && lastViewed?.longitude != null) {
+  loadCity(lastViewed);
+} else {
+  useMyLocation();
+}

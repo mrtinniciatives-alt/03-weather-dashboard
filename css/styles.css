@@ -222,6 +222,52 @@ button { cursor: pointer; }
 
 [aria-busy="true"] { opacity: .72; }
 
+.location-button {
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  padding: 0 12px;
+  color: var(--text);
+  background: rgba(255,255,255,.13);
+  white-space: nowrap;
+}
+.location-button:hover { background: rgba(255,255,255,.2); }
+
+.favourite-toggle {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  color: var(--text);
+  background: rgba(255,255,255,.13);
+  font-size: 23px;
+}
+.favourite-toggle.active { color: #ffe58a; }
+
+.skeleton-card, .skeleton-weather {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,.09);
+}
+.skeleton-card::after, .skeleton-weather::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+  animation: skeleton-wave 1.3s infinite;
+}
+.skeleton-weather {
+  min-height: 330px;
+  border-radius: 22px;
+}
+.skeleton-card { height: 132px; border-radius: 14px; }
+@keyframes skeleton-wave { to { transform: translateX(100%); } }
+
 @media (max-width: 1023px) {
   .dashboard { grid-template-columns: 1fr; }
   .favourites { min-height: 0; }
@@ -234,6 +280,8 @@ button { cursor: pointer; }
   .brand { padding-top: 3px; }
   .header-actions { width: 58vw; }
   .search { width: 100%; }
+  .location-button span { display: none; }
+  .location-button { padding: 0 10px; }
   .hero { min-height: 360px; align-items: flex-start; flex-direction: column; padding: 28px 24px; }
   .hero-details { width: 100%; display: flex; gap: 30px; padding: 18px 0 0; margin-top: auto; border-left: 0; border-top: 1px solid rgba(255,255,255,.17); }
   .forecast-row { grid-template-columns: repeat(7, 82px); overflow-x: auto; padding-bottom: 8px; }

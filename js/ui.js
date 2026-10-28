@@ -7,6 +7,16 @@ function element(tag, className, text) {
 
 export function renderCurrentWeather(container, data) {
   container.replaceChildren();
+  container.style.position = 'relative';
+
+  if (data.onFavouriteToggle) {
+    const favouriteButton = element('button', `favourite-toggle${data.isFavourite ? ' active' : ''}`, data.isFavourite ? '★' : '☆');
+    favouriteButton.type = 'button';
+    favouriteButton.setAttribute('aria-label', data.isFavourite ? 'Remove city from favourites' : 'Add city to favourites');
+    favouriteButton.setAttribute('aria-pressed', String(data.isFavourite));
+    favouriteButton.addEventListener('click', data.onFavouriteToggle);
+    container.append(favouriteButton);
+  }
 
   const main = element('div', 'hero-main');
   const location = element('div', 'location-block');
@@ -57,14 +67,29 @@ export function renderFavourites(container, countLabel, favourites, activeCity, 
   container.replaceChildren();
   favourites.forEach((city) => {
     const item = element('li');
-    const button = element('button', `favourite-item${city === activeCity ? ' active' : ''}`);
+    const active = activeCity?.toLowerCase() === city.name.toLowerCase();
+    const button = element('button', `favourite-item${active ? ' active' : ''}`);
     button.type = 'button';
-    button.dataset.city = city;
-    button.append(element('span', 'favourite-pin', '⌖'), element('span', '', city), element('span', 'chevron', '›'));
+    button.append(element('span', 'favourite-pin', '⌖'), element('span', '', city.name), element('span', 'chevron', '›'));
     button.addEventListener('click', () => onSelect(city));
     item.append(button);
     container.append(item);
   });
+}
+
+export function renderLoading(container, forecastContainer) {
+  container.replaceChildren();
+  container.className = 'glass-card hero skeleton-weather';
+  container.setAttribute('aria-busy', 'true');
+  forecastContainer.replaceChildren();
+  for (let index = 0; index < 7; index += 1) {
+    forecastContainer.append(element('div', 'skeleton-card'));
+  }
+}
+
+export function renderReady(container) {
+  container.className = 'glass-card hero';
+  container.removeAttribute('aria-busy');
 }
 
 export function setStatus(elementNode, message = '', type = 'status') {
