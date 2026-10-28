@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6d5dfc">
+  <title>Mr T Season — NBS Today</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Mr T Season home">
+        <span class="brand-mark" aria-hidden="true">☀</span>
+        <span><strong>Mr T Season</strong><small>NBS Today</small></span>
+      </a>
+
+      <div class="header-actions">
+        <form id="search-form" class="search" role="search">
+          <label class="sr-only" for="city-input">Search for a city</label>
+          <input id="city-input" name="city" type="search" placeholder="Search city..." autocomplete="off">
+          <button type="submit" aria-label="Search weather">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
+          </button>
+        </form>
+        <div class="unit-toggle" aria-label="Temperature unit">
+          <button id="unit-c" type="button" class="active" aria-pressed="true">°C</button>
+          <button id="unit-f" type="button" aria-pressed="false">°F</button>
+        </div>
+      </div>
+      <select id="city-matches" class="city-matches" aria-label="Choose a location" hidden></select>
+    </header>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <section class="dashboard" aria-label="Weather dashboard">
+      <div class="weather-content">
+        <article id="current-weather" class="glass-card hero" aria-label="Current weather"></article>
+
+        <section class="forecast-section" aria-labelledby="forecast-title">
+          <div class="section-heading">
+            <h2 id="forecast-title">7-day forecast</h2>
+            <span>Forecast</span>
+          </div>
+          <div id="forecast" class="forecast-row"></div>
+        </section>
+      </div>
+
+      <aside class="glass-card favourites" aria-labelledby="favourites-title">
+        <div class="section-heading">
+          <h2 id="favourites-title">Favourites</h2>
+          <span id="favourite-count">0 cities</span>
+        </div>
+        <ul id="favourite-list"></ul>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
